@@ -99,23 +99,72 @@ districts %>%
 11. When creating this bar chart you may have noticed that some districts have missing enrollment values. For how many districts is this the case?
 
 ```{r}
-
+districts %>% 
+  summarise(sum(is.na(enrollment)))
 ```
 
 
 12. What is the mean graduation rate across all districts? What might be wrong with using just the regular mean to assess average graduation rates?
 
+Response: the grad data distribution is left-skewed so some outliers are much lower than mean.
+
+```{r}
+districts %>% 
+  summarise(mean(grad, na.rm = TRUE))
+```
+
+
 13. Redo the previous question but use a weighted average (`weighted.mean`) graduation across all districts, weighing by enrollment. How much does this change your answer? Can you explain using the data the reason for the big change from using the mean?
+
+```{r}
+districts %>% 
+  mutate(enrollment_wt = enrollment/sum(enrollment, na.rm = TRUE)) %>% 
+  summarise(weighted.mean(x= grad, w = enrollment_wt, na.rm = TRUE))
+```
+
+
 
 14. Create a boxplot showing enrollment rates per region. Does anything stand out?
 
+Response: Mid Cumberland has highest median enrollment and largest standard deviation.
+
+```{r}
+ggplot(districts, aes(x= region, y=enrollment))+
+  geom_boxplot()+
+  coord_flip()
+```
+
 15. Create a boxplot showing graduation rates per region. Does anything stand out?
+
+Response: Southwest/Memphis has the largest standard deviation.
+
+```{r}
+ggplot(districts, aes(x = region, y= grad))+
+  geom_boxplot()+
+  coord_flip()
+```
+
 
 16. Find the weighted average of graduation rates by region using enrollment as weights. Compare the results you get for the weighted average to what you see from the boxplots. Can you explain any discrepancy?
 
+```{r}
+
+```
+
+
 17. For many districts, values for `alg_2` are lower than for `alg_1`. Create a histogram showing the distribution of differences (`alg_1` - `alg_2`). Which school had the largest drop from `alg_1` to `alg_2`? For what percentage of schools is it true that `alg_2` is larger than `alg_1`? Is there a similar dropoff for `eng_2` and `eng_3`?
 
+```{r}
+
+```
+
+
 18. You may have noticed that a lot of rows are missing values. Which district has the largest number of missing values? What do you notice about schools that have a lot of missing values?
+
+```{r}
+
+```
+
 
 19. Find the correlation between graduation rate and all other variables. Create a horizontal bar chart showing these correlations. Make sure that your plot is ordered by correlation values. What do you notice from these correlations?
 
