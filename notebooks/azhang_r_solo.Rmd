@@ -106,7 +106,7 @@ districts %>%
 
 12. What is the mean graduation rate across all districts? What might be wrong with using just the regular mean to assess average graduation rates?
 
-Response: the grad data distribution is left-skewed so some outliers are much lower than mean.
+Response: the grad data distribution is left-skewed so some outliers are much lower than mean. The grad is not weighted by enrollment.
 
 ```{r}
 districts %>% 
@@ -116,13 +116,13 @@ districts %>%
 
 13. Redo the previous question but use a weighted average (`weighted.mean`) graduation across all districts, weighing by enrollment. How much does this change your answer? Can you explain using the data the reason for the big change from using the mean?
 
+Response: the grad decreases. 
+
 ```{r}
 districts %>% 
-  mutate(enrollment_wt = enrollment/sum(enrollment, na.rm = TRUE)) %>% 
-  summarise(weighted.mean(x= grad, w = enrollment_wt, na.rm = TRUE))
+  filter(!is.na(enrollment)) %>% 
+  summarise(weighted.mean(grad, enrollment, na.rm = TRUE))
 ```
-
-
 
 14. Create a boxplot showing enrollment rates per region. Does anything stand out?
 
@@ -136,7 +136,7 @@ ggplot(districts, aes(x= region, y=enrollment))+
 
 15. Create a boxplot showing graduation rates per region. Does anything stand out?
 
-Response: Southwest/Memphis has the largest standard deviation.
+Response: Southwest/Memphis has the largest standard deviation. Mid Cumberland has the most extreme outlier. 
 
 ```{r}
 ggplot(districts, aes(x = region, y= grad))+
@@ -147,32 +147,114 @@ ggplot(districts, aes(x = region, y= grad))+
 
 16. Find the weighted average of graduation rates by region using enrollment as weights. Compare the results you get for the weighted average to what you see from the boxplots. Can you explain any discrepancy?
 
+Response: Southwest/Memphis has the lowest weighted mean of grad, although its median grad is at the middle of all regions. 
+
 ```{r}
-
+districts %>% 
+  group_by(region) %>% 
+  filter(!is.na(enrollment)) %>% 
+  summarise(weighted.mean(grad, enrollment, na.rm = TRUE))
 ```
-
 
 17. For many districts, values for `alg_2` are lower than for `alg_1`. Create a histogram showing the distribution of differences (`alg_1` - `alg_2`). Which school had the largest drop from `alg_1` to `alg_2`? For what percentage of schools is it true that `alg_2` is larger than `alg_1`? Is there a similar dropoff for `eng_2` and `eng_3`?
 
 ```{r}
+districts %>% 
+  mutate(alg_dif=alg_1-alg_2) %>% 
+  ggplot(aes(x=alg_dif))+
+  geom_histogram()
+  
+```
 
+```{r}
+districts %>% 
+  mutate(alg_dif = alg_1 - alg_2) %>% 
+  summarise(max(alg_dif, na.rm = T))
+```
+
+```{r}
+districts %>% 
+  mutate(alg_dif = alg_1 - alg_2) %>% #view()
+  filter(!is.na(alg_dif)) %>% #view()
+  summarise(sum(alg_dif<0)/length(alg_dif))
 ```
 
 
 18. You may have noticed that a lot of rows are missing values. Which district has the largest number of missing values? What do you notice about schools that have a lot of missing values?
 
-```{r}
+Response:Schools with a lot of missing values are special, city , SSD, and institute schools.
 
+```{r}
+districts %>% 
+  table(is.na())
+```
+```{r}
+districts %>% 
+  mutate(missing_values = rowSums(is.na(districts))) %>%
+  filter(missing_values == max(missing_values)) %>% 
+  pull(system_name)
+```
+```{r}
+districts %>% 
+  mutate(missing_values = rowSums(is.na(districts))) %>% 
+  arrange(desc(missing_values))
+  
 ```
 
 
 19. Find the correlation between graduation rate and all other variables. Create a horizontal bar chart showing these correlations. Make sure that your plot is ordered by correlation values. What do you notice from these correlations?
 
+Response: Top three variables with positive correlations with graduation are science, bio, ela. Top three variables with negative correlations with graduation are swd, chronic_abs, dropout. 
+
+```{r}
+df <- districts %>% 
+  select(where(is.numeric) &!system) %>%
+  cor(use = "pairwise.complete.obs") %>% 
+  data.frame() %>% 
+  select(grad) %>% 
+  arrange(desc(grad))
+```
+
+```{r}
+df$col_names = rownames(df)
+```
+```{r}
+ggplot(df, aes(x=reorder(col_names,grad), y = grad))+
+  geom_col()+
+  coord_flip()+
+  ggtitle("Correlation of graduation with other variables")+
+  xlab("Variables")+
+  ylab("Correlation")
+```
+
 20. Create a scatterplot for `grad` vs. `suspended`. Does what you see make sense given your answer from the previous part?
+
+Reponses: Yes, it makes sense.
+
+```{r}
+ggplot(districts, aes(x= grad, y=suspended))+
+  geom_point()
+```
+
 
 21. Create a linear regression model using `lm` with target variable `grad` and predictor variable `suspended`. What R^2 value does this model have? What is the interpretation of this number?
 
+Response: R squre is 0.0795, which is extremely low. Not a good model.
+
+```{r}
+simple_regresion_model <- lm(grad ~ suspended, data = districts)
+summary(simple_regresion_model)
+```
+
 22. Add the regression line to your scatterplot using `geom_smooth` with `method='lm'`. How do you feel about the regression line after seeing it plotted on the scatterplot?
+
+Response: the regresion line shows a negative correlation between grad and suspended. The line works OK at the hgih grad value, but not good in the low grad value, which has large 95% confidence intervals. 
+
+```{r}
+ggplot(districts, aes(x= grad, y=suspended))+
+  geom_point()+
+  geom_smooth(method = "lm")
+```
 
 **Continued Exploration and Practice**
 
